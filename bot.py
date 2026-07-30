@@ -8,7 +8,7 @@ from config import TELEGRAM_TOKEN
 logging.basicConfig(level=logging.INFO)
 
 # Путь к Stockfish (проверь!)
-ENGINE_PATH = "/opt/homebrew/bin/stockfish"
+ENGINE_PATH = "/usr/games/stockfish"
 
 async def analyze_position(fen: str) -> str:
     try:
