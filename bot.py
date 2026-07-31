@@ -17,7 +17,7 @@ if not TELEGRAM_TOKEN:
     raise ValueError("TELEGRAM_TOKEN не задан в переменных окружения")
 
 ENGINE_PATH = "./stockfish"
-DEFAULT_GIF_DURATION = 4.0  # секунд на кадр (по умолчанию)
+DEFAULT_GIF_DURATION = 10.0  # секунд на кадр (по умолчанию)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -49,7 +49,6 @@ OPENINGS = {
         ],
         "description": "Жертва пешки c4 за центр."
     },
-    # Добавьте остальные дебюты (структура та же)
     "Королевский гамбит": {
         "main": ["e2e4", "e7e5", "f2f4", "e5f4", "g1f3", "g8f6", "e4e5", "f6h5", "d2d4", "d7d5"],
         "variations": [
@@ -140,11 +139,12 @@ def get_back_button():
     return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="menu_main")]])
 
 def get_speed_menu():
+    # Скорость от 8 до 14 секунд с шагом 2
     keyboard = [
-        [InlineKeyboardButton("🐢 Очень медленно (8 сек)", callback_data="speed_8")],
-        [InlineKeyboardButton("🐢 Медленно (6 сек)", callback_data="speed_6")],
-        [InlineKeyboardButton("🐢 Средне (4 сек)", callback_data="speed_4")],
-        [InlineKeyboardButton("⚡ Быстро (2 сек)", callback_data="speed_2")],
+        [InlineKeyboardButton("🐢 8 сек/кадр", callback_data="speed_8")],
+        [InlineKeyboardButton("🐢 10 сек/кадр", callback_data="speed_10")],
+        [InlineKeyboardButton("🐢 12 сек/кадр", callback_data="speed_12")],
+        [InlineKeyboardButton("🐢 14 сек/кадр", callback_data="speed_14")],
         [InlineKeyboardButton("🔙 Назад", callback_data="menu_main")],
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -153,7 +153,6 @@ def get_speed_menu():
 # ОБРАБОТЧИКИ
 # ----------------------------------------------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Устанавливаем скорость по умолчанию, если не задана
     if 'gif_duration' not in context.user_data:
         context.user_data['gif_duration'] = DEFAULT_GIF_DURATION
     await update.message.reply_text(
@@ -270,7 +269,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Отправь FEN-строку для анализа позиции.\n"
         "• Загрузи PGN-файл для анализа партии.\n"
         "• Используй кнопки меню для быстрого доступа.\n\n"
-        "🎬 Скорость GIF настраивается в меню."
+        "🎬 Скорость GIF настраивается в меню (от 8 до 14 сек/кадр)."
     )
     if update.callback_query:
         try:
@@ -442,7 +441,7 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_fen))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_pgn))
-    print("✅ Бот запущен (с выбором скорости).")
+    print("✅ Бот запущен (скорость 8-14 сек, 3 гифки).")
     app.run_polling()
 
 if __name__ == "__main__":
