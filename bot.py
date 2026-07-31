@@ -9,7 +9,11 @@ import chess.pgn
 from PIL import Image
 import imageio
 import cairosvg
-from config import TELEGRAM_TOKEN
+import os
+
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+if not TELEGRAM_TOKEN:
+    raise ValueError("TELEGRAM_TOKEN не задан в переменных окружения")
 
 logging.basicConfig(level=logging.INFO)
 ENGINE_PATH = "./stockfish"
