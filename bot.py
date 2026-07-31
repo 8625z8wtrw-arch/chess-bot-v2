@@ -12,12 +12,11 @@ import imageio
 import cairosvg
 
 # --- НАСТРОЙКИ ---
-# Читаем токен из переменной окружения (на Render) или из переменной окружения локально
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 if not TELEGRAM_TOKEN:
     raise ValueError("TELEGRAM_TOKEN не задан в переменных окружения")
 
-ENGINE_PATH = "./stockfish"      # для Render (бинарник в корне проекта)
+ENGINE_PATH = "./stockfish"      # для Render
 GIF_DURATION = 4.0               # длительность каждого кадра в секундах
 
 logging.basicConfig(level=logging.INFO)
@@ -130,10 +129,7 @@ OPENINGS = {
 def get_main_menu():
     keyboard = [
         [InlineKeyboardButton("📊 Анализ FEN", callback_data="menu_fen")],
-        [InlineKeyboardButton("📖 Все дебюты", callback_data="menu_openings")],
-        [InlineKeyboardButton("📋 Советы по позиции", callback_data="menu_plan")],
-        [InlineKeyboardButton("⚡ Тактика", callback_data="menu_tactics")],
-        [InlineKeyboardButton("🎬 GIF дебюта", callback_data="menu_gif")],
+        [InlineKeyboardButton("📖 Все дебюты (с GIF)", callback_data="menu_openings")],
         [InlineKeyboardButton("📂 Загрузить PGN", callback_data="menu_pgn")],
         [InlineKeyboardButton("🔄 Пример FEN", callback_data="menu_example_fen")],
         [InlineKeyboardButton("❓ Помощь", callback_data="menu_help")],
@@ -170,43 +166,6 @@ def generate_opening_gif(opening_name: str) -> bytes:
     gif_buffer.seek(0)
     return gif_buffer.getvalue()
 
-# --- СОВЕТЫ ПО ПОЗИЦИИ ---
-def get_position_advice(board: chess.Board) -> str:
-    advice = []
-    turn = "Белые" if board.turn == chess.WHITE else "Чёрные"
-    advice.append(f"Сейчас ход {turn}.")
-    if board.is_check():
-        advice.append("⚠️ Король под шахом!")
-    if board.is_checkmate():
-        advice.append("🏆 МАТ! Игра окончена.")
-    if board.is_stalemate():
-        advice.append("⚖️ Пат! Ничья.")
-    if board.turn == chess.WHITE:
-        knights = board.knights(chess.WHITE)
-        bishops = board.bishops(chess.WHITE)
-        developed = sum(1 for sq in knights if sq not in [chess.B1, chess.G1]) + sum(1 for sq in bishops if sq not in [chess.C1, chess.F1])
-        if developed < 2:
-            advice.append("🐴 Развивайте коней и слонов.")
-    else:
-        knights = board.knights(chess.BLACK)
-        bishops = board.bishops(chess.BLACK)
-        developed = sum(1 for sq in knights if sq not in [chess.B8, chess.G8]) + sum(1 for sq in bishops if sq not in [chess.C8, chess.F8])
-        if developed < 2:
-            advice.append("🐴 Развивайте коней и слонов.")
-    return "\n".join(advice) if advice else "Позиция сбалансирована."
-
-# --- ТАКТИКА ---
-def find_tactics(board: chess.Board) -> str:
-    tactics = []
-    for move in board.legal_moves:
-        if board.gives_check(move):
-            tactics.append(f"⚡ Ход {board.san(move)} даёт шах.")
-    if board.is_checkmate():
-        tactics.append("🏆 МАТ!")
-    if board.is_stalemate():
-        tactics.append("⚖️ Пат.")
-    return "\n".join(tactics[:5]) if tactics else "⚠️ Явных тактических угроз не обнаружено."
-
 # --- АНАЛИЗ ПОЗИЦИИ (ТОП-3 ХОДА) ---
 async def analyze_position(fen: str) -> str:
     try:
@@ -223,9 +182,6 @@ async def analyze_position(fen: str) -> str:
                 line_moves = [board.san(m) for m in pv[:3]]
                 line_str = " ".join(line_moves) if line_moves else "нет продолжения"
                 result_text += f"{i}. **{best_move_san}**\n   Линия: {line_str}\n"
-            advice = get_position_advice(board)
-            if advice:
-                result_text += f"\n📋 {advice}"
             return result_text
     except Exception as e:
         logging.error(f"Ошибка анализа: {e}")
@@ -235,7 +191,7 @@ async def analyze_position(fen: str) -> str:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "♟️ **Шахматный справочник**\n\n"
-        "Здесь ты найдёшь анализ позиций, дебюты и тактические советы.\n"
+        "Здесь ты найдёшь анализ позиций и анимации дебютов.\n"
         "Выбери действие:",
         reply_markup=get_main_menu(),
         parse_mode='Markdown'
@@ -243,9 +199,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
-        "📘 **Команды и возможности:**\n"
+        "📘 **Команды:**\n"
         "/start – главное меню\n"
-        "/opening_gif <название> – GIF-анимация дебюта (можно часть названия)\n"
+        "/opening_gif <название> – GIF дебюта (можно часть названия)\n"
         "/move <ход> – сделать ход (например, /move e4)\n"
         "/help – эта справка\n\n"
         "• Отправь FEN-строку для анализа позиции.\n"
@@ -273,28 +229,17 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=get_back_button()
             )
         elif query.data == "menu_openings":
-            list_text = "📖 **Все дебюты:**\n\n"
-            for name, data in OPENINGS.items():
-                list_text += f"• **{name}** — {data['description']}\n"
-            if len(list_text) > 4000:
-                list_text = "📖 Слишком много дебютов, вот названия:\n" + "\n".join(f"• {key}" for key in OPENINGS.keys())
-            await query.edit_message_text(list_text, parse_mode='Markdown', reply_markup=get_back_button())
-        elif query.data == "menu_plan":
-            await query.edit_message_text(
-                "📋 **Советы по позиции**\nОтправь FEN-строку.",
-                reply_markup=get_back_button()
-            )
-        elif query.data == "menu_tactics":
-            await query.edit_message_text(
-                "⚡ **Тактический анализ**\nОтправь FEN-строку.",
-                reply_markup=get_back_button()
-            )
-        elif query.data == "menu_gif":
-            list_text = "🎬 **Выбери дебют для GIF:**\n\n"
+            # Создаём кнопки для каждого дебюта
+            buttons = []
             for name in OPENINGS:
-                list_text += f"• `{name}` — {OPENINGS[name]['description'][:60]}...\n"
-            list_text += "\nВведи команду: `/opening_gif Название`\n(можно писать часть названия)"
-            await query.edit_message_text(list_text, parse_mode='Markdown', reply_markup=get_back_button())
+                # каждая кнопка будет иметь callback_data с префиксом "gif_"
+                buttons.append([InlineKeyboardButton(name, callback_data=f"gif_{name}")])
+            # Добавляем кнопку "Назад"
+            buttons.append([InlineKeyboardButton("🔙 Назад", callback_data="menu_main")])
+            await query.edit_message_text(
+                "📖 **Выбери дебют для просмотра GIF:**",
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
         elif query.data == "menu_pgn":
             await query.edit_message_text(
                 "📂 **Загрузка PGN**\nОтправь мне файл с расширением `.pgn`.",
@@ -309,6 +254,20 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         elif query.data == "menu_help":
             await help_command(update, context)
+        elif query.data.startswith("gif_"):
+            # Извлекаем название дебюта из callback_data
+            opening_name = query.data[4:]  # убираем "gif_"
+            await query.edit_message_text(f"🎬 Генерирую GIF для «{opening_name}»...")
+            gif_data = generate_opening_gif(opening_name)
+            if gif_data:
+                await query.message.reply_animation(
+                    animation=InputFile(io.BytesIO(gif_data), filename="opening.gif"),
+                    caption=f"🎬 Дебют: **{opening_name}**\n📖 {OPENINGS[opening_name]['description']}\n(каждый ход показывается {GIF_DURATION} сек)",
+                    parse_mode='Markdown',
+                    reply_markup=get_back_button()
+                )
+            else:
+                await query.message.reply_text("❌ Ошибка генерации GIF.", reply_markup=get_back_button())
     except Exception as e:
         logging.error(f"Callback error: {e}")
         try:
