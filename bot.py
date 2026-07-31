@@ -17,12 +17,12 @@ if not TELEGRAM_TOKEN:
     raise ValueError("TELEGRAM_TOKEN не задан в переменных окружения")
 
 ENGINE_PATH = "./stockfish"
-DEFAULT_GIF_DURATION = 10.0  # секунд на кадр (по умолчанию)
+DEFAULT_GIF_DURATION = 1.0  # секунд на кадр (по умолчанию)
 
 logging.basicConfig(level=logging.INFO)
 
 # ----------------------------------------------------------------------
-# ДЕБЮТНАЯ БАЗА (основная линия + 2 ответвления)
+# ДЕБЮТНАЯ БАЗА (25 дебютов)
 # ----------------------------------------------------------------------
 OPENINGS = {
     "Испанская партия": {
@@ -72,6 +72,150 @@ OPENINGS = {
             ["e2e4", "g8f6", "e4e5", "f6d5", "d2d4", "d7d6", "c2c4", "d5b6", "b1c3", "c8f5"]
         ],
         "description": "Провокация пешек."
+    },
+    "Английское начало": {
+        "main": ["c2c4", "e7e5", "g1f3", "e5e4", "d2d4", "e4f3", "d4d5", "g8e7", "e2e4", "d7d6"],
+        "variations": [
+            ["c2c4", "e7e5", "g1f3", "e5e4", "d2d4", "e4f3", "d4d5", "g8e7", "e2e4", "d7d6"],
+            ["c2c4", "e7e5", "g1f3", "e5e4", "d2d4", "e4f3", "d4d5", "g8e7", "e2e4", "f7f5"]
+        ],
+        "description": "Фланговый контроль поля d5."
+    },
+    "Дебют четырёх коней": {
+        "main": ["e2e4", "e7e5", "g1f3", "b8c6", "b1c3", "g8f6", "d2d4", "e5d4", "f3d4", "f8b4"],
+        "variations": [
+            ["e2e4", "e7e5", "g1f3", "b8c6", "b1c3", "g8f6", "d2d4", "e5d4", "f3d4", "f8b4"],
+            ["e2e4", "e7e5", "g1f3", "b8c6", "b1c3", "g8f6", "f1c4", "f8c5", "e1g1", "e1g1"]
+        ],
+        "description": "Симметричное развитие."
+    },
+    "Защита двух коней": {
+        "main": ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "g8f6", "d2d4", "e5d4", "e1g1", "f8c5"],
+        "variations": [
+            ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "g8f6", "d2d4", "e5d4", "e1g1", "f8c5"],
+            ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "g8f6", "d2d4", "e5d4", "c4d5", "f6d5"]
+        ],
+        "description": "Агрессивный ответ."
+    },
+    "Гамбит Эванса": {
+        "main": ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "b2b4", "c5b4", "c2c3", "b4c5"],
+        "variations": [
+            ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "b2b4", "c5b4", "c2c3", "b4c5"],
+            ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "b2b4", "c5b4", "c2c3", "b4a5"]
+        ],
+        "description": "Жертва пешки b4."
+    },
+    "Русская партия": {
+        "main": ["e2e4", "e7e5", "g1f3", "g8f6", "d2d4", "e5d4", "e4e5", "f6e4", "f3d4", "d7d5"],
+        "variations": [
+            ["e2e4", "e7e5", "g1f3", "g8f6", "d2d4", "e5d4", "e4e5", "f6e4", "f3d4", "d7d5"],
+            ["e2e4", "e7e5", "g1f3", "g8f6", "d2d4", "e5d4", "e4e5", "f6e4", "f3d4", "f8c5"]
+        ],
+        "description": "Атака на пешку e4."
+    },
+    "Шотландская партия": {
+        "main": ["e2e4", "e7e5", "g1f3", "b8c6", "d2d4", "e5d4", "f3d4", "d7d5", "e4d5", "f6d5"],
+        "variations": [
+            ["e2e4", "e7e5", "g1f3", "b8c6", "d2d4", "e5d4", "f3d4", "d7d5", "e4d5", "f6d5"],
+            ["e2e4", "e7e5", "g1f3", "b8c6", "d2d4", "e5d4", "f3d4", "d7d5", "e4d5", "f6d5"]
+        ],
+        "description": "Открытый центр."
+    },
+    "Венская партия": {
+        "main": ["e2e4", "e7e5", "b1c3", "g8f6", "f2f4", "d7d5", "f4e5", "f6e4", "d2d3", "e4c5"],
+        "variations": [
+            ["e2e4", "e7e5", "b1c3", "g8f6", "f2f4", "d7d5", "f4e5", "f6e4", "d2d3", "e4c5"],
+            ["e2e4", "e7e5", "b1c3", "g8f6", "f2f4", "d7d5", "f4e5", "f6e4", "d2d3", "e4g5"]
+        ],
+        "description": "Подготовка f4."
+    },
+    "Французская защита": {
+        "main": ["e2e4", "e7e6", "d2d4", "d7d5", "b1c3", "g8f6", "c1g5", "f8e7", "e4e5", "f6d7"],
+        "variations": [
+            ["e2e4", "e7e6", "d2d4", "d7d5", "b1c3", "g8f6", "c1g5", "f8e7", "e4e5", "f6d7"],
+            ["e2e4", "e7e6", "d2d4", "d7d5", "b1c3", "d5e4", "c3e4", "g8f6"]
+        ],
+        "description": "Укрепление центра чёрными."
+    },
+    "Скандинавская защита": {
+        "main": ["e2e4", "d7d5", "e4d5", "d8d5", "b1c3", "d5a5", "d2d4", "g8f6", "g1f3", "c8f5"],
+        "variations": [
+            ["e2e4", "d7d5", "e4d5", "d8d5", "b1c3", "d5a5", "d2d4", "g8f6", "g1f3", "c8f5"],
+            ["e2e4", "d7d5", "e4d5", "d8d5", "b1c3", "d5a5", "d2d4", "g8f6", "g1f3", "c8g4"]
+        ],
+        "description": "Ранняя атака центра."
+    },
+    "Голландская защита": {
+        "main": ["d2d4", "f7f5", "g1f3", "g8f6", "g2g3", "e7e6", "f1g2", "f8e7", "e1g1", "e8g8"],
+        "variations": [
+            ["d2d4", "f7f5", "g1f3", "g8f6", "g2g3", "e7e6", "f1g2", "f8e7", "e1g1", "e8g8"],
+            ["d2d4", "f7f5", "g1f3", "g8f6", "g2g3", "d7d6", "f1g2", "c8d7"]
+        ],
+        "description": "Атака на королевском фланге."
+    },
+    "Староиндийская защита": {
+        "main": ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "f8g7", "e2e4", "d7d6", "g1f3", "e8g8"],
+        "variations": [
+            ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "f8g7", "e2e4", "d7d6", "g1f3", "e8g8"],
+            ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "f8g7", "e2e4", "d7d6", "f2f4", "e8g8"]
+        ],
+        "description": "Фианкетто слона."
+    },
+    "Новоиндийская защита": {
+        "main": ["d2d4", "g8f6", "c2c4", "e7e6", "g1f3", "b7b6", "g2g3", "c8b7", "f1g2", "f8e7"],
+        "variations": [
+            ["d2d4", "g8f6", "c2c4", "e7e6", "g1f3", "b7b6", "g2g3", "c8b7", "f1g2", "f8e7"],
+            ["d2d4", "g8f6", "c2c4", "e7e6", "g1f3", "b7b6", "g2g3", "c8b7", "e1g1", "f8e7"]
+        ],
+        "description": "Фианкетто ферзевого слона."
+    },
+    "Защита Грюнфельда": {
+        "main": ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "d7d5", "g1f3", "f8g7", "c4d5", "f6d5"],
+        "variations": [
+            ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "d7d5", "g1f3", "f8g7", "c4d5", "f6d5"],
+            ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "d7d5", "c4d5", "f6d5", "e2e4", "d5c3"]
+        ],
+        "description": "Жертва центра."
+    },
+    "Защита Нимцовича": {
+        "main": ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4", "d1c2", "d7d5", "c4d5", "e6d5"],
+        "variations": [
+            ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4", "d1c2", "d7d5", "c4d5", "e6d5"],
+            ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4", "d1c2", "e8g8", "a2a3", "b4c3"]
+        ],
+        "description": "Связка коня c3."
+    },
+    "Защита Бенони": {
+        "main": ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "e7e6", "b1c3", "e6d5", "c4d5", "d7d6"],
+        "variations": [
+            ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "e7e6", "b1c3", "e6d5", "c4d5", "d7d6"],
+            ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "e7e6", "b1c3", "e6d5", "c4d5", "f8e7"]
+        ],
+        "description": "Пешечный центр."
+    },
+    "Волжский гамбит": {
+        "main": ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "b7b5", "c4b5", "a7a6", "b5a6", "c8a6"],
+        "variations": [
+            ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "b7b5", "c4b5", "a7a6", "b5a6", "c8a6"],
+            ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "b7b5", "c4b5", "a7a6", "b5a6", "d7d6"]
+        ],
+        "description": "Жертва пешки b5."
+    },
+    "Защита Филидора": {
+        "main": ["e2e4", "e7e5", "g1f3", "d7d6", "d2d4", "e5d4", "f3d4", "g8f6", "b1c3", "f8e7"],
+        "variations": [
+            ["e2e4", "e7e5", "g1f3", "d7d6", "d2d4", "e5d4", "f3d4", "g8f6", "b1c3", "f8e7"],
+            ["e2e4", "e7e5", "g1f3", "d7d6", "d2d4", "e5d4", "f3d4", "g8f6", "b1c3", "c8d7"]
+        ],
+        "description": "Укрепление центра."
+    },
+    "Защита Петрова": {
+        "main": ["e2e4", "e7e5", "g1f3", "g8f6", "d2d4", "e5d4", "e4e5", "f6e4", "f3d4", "d7d5"],
+        "variations": [
+            ["e2e4", "e7e5", "g1f3", "g8f6", "d2d4", "e5d4", "e4e5", "f6e4", "f3d4", "d7d5"],
+            ["e2e4", "e7e5", "g1f3", "g8f6", "d2d4", "e5d4", "e4e5", "f6e4", "f3d4", "f8c5"]
+        ],
+        "description": "Русская партия."
     }
 }
 
@@ -127,7 +271,7 @@ def format_variation(moves_uci):
 def get_main_menu():
     keyboard = [
         [InlineKeyboardButton("📊 Анализ FEN", callback_data="menu_fen")],
-        [InlineKeyboardButton("📖 Все дебюты (3 гифки)", callback_data="menu_openings")],
+        [InlineKeyboardButton("📖 Все дебюты", callback_data="menu_openings")],
         [InlineKeyboardButton("🎬 Настроить скорость", callback_data="menu_speed")],
         [InlineKeyboardButton("📂 Загрузить PGN", callback_data="menu_pgn")],
         [InlineKeyboardButton("🔄 Пример FEN", callback_data="menu_example_fen")],
@@ -139,12 +283,17 @@ def get_back_button():
     return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="menu_main")]])
 
 def get_speed_menu():
-    # Скорость от 8 до 14 секунд с шагом 2
+    # Скорость от 0.1 до 2.0 секунд
     keyboard = [
-        [InlineKeyboardButton("🐢 8 сек/кадр", callback_data="speed_8")],
-        [InlineKeyboardButton("🐢 10 сек/кадр", callback_data="speed_10")],
-        [InlineKeyboardButton("🐢 12 сек/кадр", callback_data="speed_12")],
-        [InlineKeyboardButton("🐢 14 сек/кадр", callback_data="speed_14")],
+        [InlineKeyboardButton("⚡ 0.1 сек", callback_data="speed_0.1"),
+         InlineKeyboardButton("⚡ 0.2 сек", callback_data="speed_0.2"),
+         InlineKeyboardButton("⚡ 0.4 сек", callback_data="speed_0.4")],
+        [InlineKeyboardButton("⚡ 0.6 сек", callback_data="speed_0.6"),
+         InlineKeyboardButton("⚡ 0.8 сек", callback_data="speed_0.8"),
+         InlineKeyboardButton("🐢 1.0 сек", callback_data="speed_1.0")],
+        [InlineKeyboardButton("🐢 1.2 сек", callback_data="speed_1.2"),
+         InlineKeyboardButton("🐢 1.5 сек", callback_data="speed_1.5"),
+         InlineKeyboardButton("🐢 2.0 сек", callback_data="speed_2.0")],
         [InlineKeyboardButton("🔙 Назад", callback_data="menu_main")],
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -158,11 +307,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"♟️ **Шахматный справочник**\n\n"
         f"Текущая скорость GIF: **{context.user_data['gif_duration']} сек/кадр**\n"
-        f"Выбери дебют – получишь 3 гифки: основная линия и 2 ответвления.\n"
-        f"Скорость можно изменить в меню.",
+        f"Выбери дебют – получишь гифки (основная линия + ответвления, если есть).\n"
+        f"Скорость можно изменить в меню или командой `/speed <секунды>` (0.1–2.0).",
         reply_markup=get_main_menu(),
         parse_mode='Markdown'
     )
+
+async def speed_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Установка скорости через команду /speed <секунды>."""
+    if not context.args:
+        await update.message.reply_text("Пример: `/speed 0.5` (от 0.1 до 2.0)", parse_mode='Markdown')
+        return
+    try:
+        val = float(context.args[0])
+        if val < 0.1 or val > 2.0:
+            await update.message.reply_text("Скорость должна быть от 0.1 до 2.0 секунд.")
+            return
+        context.user_data['gif_duration'] = val
+        await update.message.reply_text(f"✅ Скорость установлена: **{val} сек/кадр**", parse_mode='Markdown')
+    except ValueError:
+        await update.message.reply_text("❌ Введите число (например, 0.5)")
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -190,7 +354,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         elif query.data == "menu_speed":
             await query.edit_message_text(
-                "🎬 **Выбери скорость GIF:**\n(в секундах на кадр)",
+                "🎬 **Выбери скорость GIF:** (секунд на кадр)\nМожно также использовать `/speed <число>`",
                 reply_markup=get_speed_menu()
             )
         elif query.data.startswith("speed_"):
@@ -222,32 +386,25 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.message.reply_text("❌ Дебют не найден.", reply_markup=get_back_button())
                 return
             duration = context.user_data.get('gif_duration', DEFAULT_GIF_DURATION)
-            await query.edit_message_text(f"🎬 Генерирую 3 гифки для «{opening_name}»... (скорость {duration} сек/кадр)")
-            # Генерируем и отправляем по одной
+            await query.edit_message_text(f"🎬 Генерирую гифки для «{opening_name}»... (скорость {duration} сек/кадр)")
             main_gif = generate_gif_from_moves(opening["main"], duration)
-            var1_gif = generate_gif_from_moves(opening["variations"][0], duration)
-            var2_gif = generate_gif_from_moves(opening["variations"][1], duration)
             main_san = format_variation(opening["main"])
-            var1_san = format_variation(opening["variations"][0])
-            var2_san = format_variation(opening["variations"][1])
             if main_gif:
                 await query.message.reply_animation(
                     animation=InputFile(io.BytesIO(main_gif), filename="main.gif"),
                     caption=f"🎬 {opening_name} – Основная линия\n`{main_san}`",
                     parse_mode='Markdown'
                 )
-            if var1_gif:
-                await query.message.reply_animation(
-                    animation=InputFile(io.BytesIO(var1_gif), filename="var1.gif"),
-                    caption=f"🔄 Ответвление 1\n`{var1_san}`",
-                    parse_mode='Markdown'
-                )
-            if var2_gif:
-                await query.message.reply_animation(
-                    animation=InputFile(io.BytesIO(var2_gif), filename="var2.gif"),
-                    caption=f"🔄 Ответвление 2\n`{var2_san}`",
-                    parse_mode='Markdown'
-                )
+            if opening.get("variations"):
+                for idx, var_moves in enumerate(opening["variations"], 1):
+                    var_gif = generate_gif_from_moves(var_moves, duration)
+                    var_san = format_variation(var_moves)
+                    if var_gif:
+                        await query.message.reply_animation(
+                            animation=InputFile(io.BytesIO(var_gif), filename=f"var{idx}.gif"),
+                            caption=f"🔄 Ответвление {idx}\n`{var_san}`",
+                            parse_mode='Markdown'
+                        )
             await query.message.reply_text(
                 f"📖 {opening['description']}\n⏱️ Скорость: {duration} сек/кадр",
                 reply_markup=get_back_button()
@@ -264,12 +421,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📘 **Команды:**\n"
         "/start – главное меню\n"
         "/opening_gif <название> – GIF дебюта (можно часть названия)\n"
+        "/speed <секунды> – установить скорость (0.1..2.0)\n"
         "/move <ход> – сделать ход (например, /move e4)\n"
         "/help – эта справка\n\n"
         "• Отправь FEN-строку для анализа позиции.\n"
         "• Загрузи PGN-файл для анализа партии.\n"
-        "• Используй кнопки меню для быстрого доступа.\n\n"
-        "🎬 Скорость GIF настраивается в меню (от 8 до 14 сек/кадр)."
+        "• Используй кнопки меню для быстрого доступа."
     )
     if update.callback_query:
         try:
@@ -299,31 +456,25 @@ async def opening_gif(update: Update, context: ContextTypes.DEFAULT_TYPE):
     opening = OPENINGS[found]
     duration = context.user_data.get('gif_duration', DEFAULT_GIF_DURATION)
     try:
-        await update.message.reply_text(f"🎬 Генерирую 3 гифки для «{found}»...")
+        await update.message.reply_text(f"🎬 Генерирую гифки для «{found}»...")
         main_gif = generate_gif_from_moves(opening["main"], duration)
-        var1_gif = generate_gif_from_moves(opening["variations"][0], duration)
-        var2_gif = generate_gif_from_moves(opening["variations"][1], duration)
         main_san = format_variation(opening["main"])
-        var1_san = format_variation(opening["variations"][0])
-        var2_san = format_variation(opening["variations"][1])
         if main_gif:
             await update.message.reply_animation(
                 animation=InputFile(io.BytesIO(main_gif), filename="main.gif"),
                 caption=f"🎬 {found} – Основная линия\n`{main_san}`",
                 parse_mode='Markdown'
             )
-        if var1_gif:
-            await update.message.reply_animation(
-                animation=InputFile(io.BytesIO(var1_gif), filename="var1.gif"),
-                caption=f"🔄 Ответвление 1\n`{var1_san}`",
-                parse_mode='Markdown'
-            )
-        if var2_gif:
-            await update.message.reply_animation(
-                animation=InputFile(io.BytesIO(var2_gif), filename="var2.gif"),
-                caption=f"🔄 Ответвление 2\n`{var2_san}`",
-                parse_mode='Markdown'
-            )
+        if opening.get("variations"):
+            for idx, var_moves in enumerate(opening["variations"], 1):
+                var_gif = generate_gif_from_moves(var_moves, duration)
+                var_san = format_variation(var_moves)
+                if var_gif:
+                    await update.message.reply_animation(
+                        animation=InputFile(io.BytesIO(var_gif), filename=f"var{idx}.gif"),
+                        caption=f"🔄 Ответвление {idx}\n`{var_san}`",
+                        parse_mode='Markdown'
+                    )
         await update.message.reply_text(
             f"📖 {opening['description']}\n⏱️ Скорость: {duration} сек/кадр",
             reply_markup=get_back_button()
@@ -435,13 +586,14 @@ def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("speed", speed_command))
     app.add_handler(CommandHandler("move", move_command))
     app.add_handler(CommandHandler("m", move_command))
     app.add_handler(CommandHandler("opening_gif", opening_gif))
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_fen))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_pgn))
-    print("✅ Бот запущен (скорость 8-14 сек, 3 гифки).")
+    print("✅ Бот запущен (25 дебютов, скорость 0.1–2.0 сек).")
     app.run_polling()
 
 if __name__ == "__main__":
