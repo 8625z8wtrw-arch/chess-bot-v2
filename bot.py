@@ -17,12 +17,12 @@ if not TELEGRAM_TOKEN:
     raise ValueError("TELEGRAM_TOKEN не задан в переменных окружения")
 
 ENGINE_PATH = "./stockfish"
-DEFAULT_GIF_DURATION = 1.0  # секунд на кадр (по умолчанию)
+DEFAULT_GIF_DURATION = 1.0
 
 logging.basicConfig(level=logging.INFO)
 
 # ----------------------------------------------------------------------
-# ДЕБЮТНАЯ БАЗА (25 дебютов)
+# ДЕБЮТНАЯ БАЗА (25 дебютов с названиями вариантов)
 # ----------------------------------------------------------------------
 OPENINGS = {
     "Испанская партия": {
@@ -30,6 +30,10 @@ OPENINGS = {
         "variations": [
             ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6", "b5a4", "g8f6", "e1g1", "d7d6"],
             ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "g8f6", "e1g1", "f8e7", "d2d4", "e5d4"]
+        ],
+        "variation_names": [
+            "Вариант с 9...d6",
+            "Берлинская защита (3...Nf6)"
         ],
         "description": "Классический дебют. Давление на коня c6."
     },
@@ -39,6 +43,10 @@ OPENINGS = {
             ["e2e4", "c7c5", "g1f3", "d7d6", "d2d4", "c5d4", "f3d4", "g8f6", "b1c3", "e7e6"],
             ["e2e4", "c7c5", "g1f3", "b8c6", "d2d4", "c5d4", "f3d4", "g8f6", "b1c3", "d7d6"]
         ],
+        "variation_names": [
+            "Дракон (9...g6)",
+            "Классическая с 2...Nc6"
+        ],
         "description": "Асимметричный ответ. Борьба за центр."
     },
     "Ферзевый гамбит": {
@@ -46,6 +54,10 @@ OPENINGS = {
         "variations": [
             ["d2d4", "d7d5", "c2c4", "c7c6", "b1c3", "g8f6", "c1f4", "e7e6", "e2e3", "f8d6"],
             ["d2d4", "d7d5", "c2c4", "e7e6", "b1c3", "g8f6", "c1g5", "f8b4", "e2e3", "e1g1"]
+        ],
+        "variation_names": [
+            "Славянская защита (3...c6)",
+            "Принятый гамбит (3...Bb4)"
         ],
         "description": "Жертва пешки c4 за центр."
     },
@@ -55,6 +67,10 @@ OPENINGS = {
             ["e2e4", "e7e5", "f2f4", "e5f4", "g1f3", "d7d6", "d2d4", "g8f6", "f1d3", "e1g1"],
             ["e2e4", "e7e5", "f2f4", "e5f4", "g1f3", "g8f6", "e4e5", "f6h5", "d2d4", "d7d5"]
         ],
+        "variation_names": [
+            "Вариант с ...d6",
+            "Контратака ...d5"
+        ],
         "description": "Агрессивная жертва пешки f4."
     },
     "Защита Каро-Канн": {
@@ -62,6 +78,10 @@ OPENINGS = {
         "variations": [
             ["e2e4", "c7c6", "d2d4", "d7d5", "b1c3", "d5e4", "c3e4", "c8f5", "e4g3", "f5g6"],
             ["e2e4", "c7c6", "d2d4", "d7d5", "b1c3", "d5e4", "c3e4", "g8f6", "e4f6", "e7f6"]
+        ],
+        "variation_names": [
+            "Классическая линия",
+            "Вариант с ...Nf6"
         ],
         "description": "Надёжная защита."
     },
@@ -71,6 +91,10 @@ OPENINGS = {
             ["e2e4", "g8f6", "e4e5", "f6d5", "d2d4", "d7d6", "c2c4", "d5b6", "f2f4", "d6e5"],
             ["e2e4", "g8f6", "e4e5", "f6d5", "d2d4", "d7d6", "c2c4", "d5b6", "b1c3", "c8f5"]
         ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...Bf5"
+        ],
         "description": "Провокация пешек."
     },
     "Английское начало": {
@@ -78,6 +102,10 @@ OPENINGS = {
         "variations": [
             ["c2c4", "e7e5", "g1f3", "e5e4", "d2d4", "e4f3", "d4d5", "g8e7", "e2e4", "d7d6"],
             ["c2c4", "e7e5", "g1f3", "e5e4", "d2d4", "e4f3", "d4d5", "g8e7", "e2e4", "f7f5"]
+        ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...f5"
         ],
         "description": "Фланговый контроль поля d5."
     },
@@ -87,6 +115,10 @@ OPENINGS = {
             ["e2e4", "e7e5", "g1f3", "b8c6", "b1c3", "g8f6", "d2d4", "e5d4", "f3d4", "f8b4"],
             ["e2e4", "e7e5", "g1f3", "b8c6", "b1c3", "g8f6", "f1c4", "f8c5", "e1g1", "e1g1"]
         ],
+        "variation_names": [
+            "Главная линия",
+            "Итальянская ветка"
+        ],
         "description": "Симметричное развитие."
     },
     "Защита двух коней": {
@@ -94,6 +126,10 @@ OPENINGS = {
         "variations": [
             ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "g8f6", "d2d4", "e5d4", "e1g1", "f8c5"],
             ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "g8f6", "d2d4", "e5d4", "c4d5", "f6d5"]
+        ],
+        "variation_names": [
+            "Классическая",
+            "Вариант с 9.Bxd5"
         ],
         "description": "Агрессивный ответ."
     },
@@ -103,6 +139,10 @@ OPENINGS = {
             ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "b2b4", "c5b4", "c2c3", "b4c5"],
             ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4", "f8c5", "b2b4", "c5b4", "c2c3", "b4a5"]
         ],
+        "variation_names": [
+            "Главная линия",
+            "Отступление на a5"
+        ],
         "description": "Жертва пешки b4."
     },
     "Русская партия": {
@@ -110,6 +150,10 @@ OPENINGS = {
         "variations": [
             ["e2e4", "e7e5", "g1f3", "g8f6", "d2d4", "e5d4", "e4e5", "f6e4", "f3d4", "d7d5"],
             ["e2e4", "e7e5", "g1f3", "g8f6", "d2d4", "e5d4", "e4e5", "f6e4", "f3d4", "f8c5"]
+        ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...Bc5"
         ],
         "description": "Атака на пешку e4."
     },
@@ -119,6 +163,10 @@ OPENINGS = {
             ["e2e4", "e7e5", "g1f3", "b8c6", "d2d4", "e5d4", "f3d4", "d7d5", "e4d5", "f6d5"],
             ["e2e4", "e7e5", "g1f3", "b8c6", "d2d4", "e5d4", "f3d4", "d7d5", "e4d5", "f6d5"]
         ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...Nxd5"
+        ],
         "description": "Открытый центр."
     },
     "Венская партия": {
@@ -126,6 +174,10 @@ OPENINGS = {
         "variations": [
             ["e2e4", "e7e5", "b1c3", "g8f6", "f2f4", "d7d5", "f4e5", "f6e4", "d2d3", "e4c5"],
             ["e2e4", "e7e5", "b1c3", "g8f6", "f2f4", "d7d5", "f4e5", "f6e4", "d2d3", "e4g5"]
+        ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...Ng5"
         ],
         "description": "Подготовка f4."
     },
@@ -135,6 +187,10 @@ OPENINGS = {
             ["e2e4", "e7e6", "d2d4", "d7d5", "b1c3", "g8f6", "c1g5", "f8e7", "e4e5", "f6d7"],
             ["e2e4", "e7e6", "d2d4", "d7d5", "b1c3", "d5e4", "c3e4", "g8f6"]
         ],
+        "variation_names": [
+            "Классическая линия",
+            "Вариант с разменом"
+        ],
         "description": "Укрепление центра чёрными."
     },
     "Скандинавская защита": {
@@ -142,6 +198,10 @@ OPENINGS = {
         "variations": [
             ["e2e4", "d7d5", "e4d5", "d8d5", "b1c3", "d5a5", "d2d4", "g8f6", "g1f3", "c8f5"],
             ["e2e4", "d7d5", "e4d5", "d8d5", "b1c3", "d5a5", "d2d4", "g8f6", "g1f3", "c8g4"]
+        ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...Bg4"
         ],
         "description": "Ранняя атака центра."
     },
@@ -151,6 +211,10 @@ OPENINGS = {
             ["d2d4", "f7f5", "g1f3", "g8f6", "g2g3", "e7e6", "f1g2", "f8e7", "e1g1", "e8g8"],
             ["d2d4", "f7f5", "g1f3", "g8f6", "g2g3", "d7d6", "f1g2", "c8d7"]
         ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...d6"
+        ],
         "description": "Атака на королевском фланге."
     },
     "Староиндийская защита": {
@@ -158,6 +222,10 @@ OPENINGS = {
         "variations": [
             ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "f8g7", "e2e4", "d7d6", "g1f3", "e8g8"],
             ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "f8g7", "e2e4", "d7d6", "f2f4", "e8g8"]
+        ],
+        "variation_names": [
+            "Главная линия",
+            "Атака Самиша (f4)"
         ],
         "description": "Фианкетто слона."
     },
@@ -167,6 +235,10 @@ OPENINGS = {
             ["d2d4", "g8f6", "c2c4", "e7e6", "g1f3", "b7b6", "g2g3", "c8b7", "f1g2", "f8e7"],
             ["d2d4", "g8f6", "c2c4", "e7e6", "g1f3", "b7b6", "g2g3", "c8b7", "e1g1", "f8e7"]
         ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с рокировкой"
+        ],
         "description": "Фианкетто ферзевого слона."
     },
     "Защита Грюнфельда": {
@@ -174,6 +246,10 @@ OPENINGS = {
         "variations": [
             ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "d7d5", "g1f3", "f8g7", "c4d5", "f6d5"],
             ["d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "d7d5", "c4d5", "f6d5", "e2e4", "d5c3"]
+        ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...Nxc3"
         ],
         "description": "Жертва центра."
     },
@@ -183,6 +259,10 @@ OPENINGS = {
             ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4", "d1c2", "d7d5", "c4d5", "e6d5"],
             ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4", "d1c2", "e8g8", "a2a3", "b4c3"]
         ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с рокировкой"
+        ],
         "description": "Связка коня c3."
     },
     "Защита Бенони": {
@@ -190,6 +270,10 @@ OPENINGS = {
         "variations": [
             ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "e7e6", "b1c3", "e6d5", "c4d5", "d7d6"],
             ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "e7e6", "b1c3", "e6d5", "c4d5", "f8e7"]
+        ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...Be7"
         ],
         "description": "Пешечный центр."
     },
@@ -199,6 +283,10 @@ OPENINGS = {
             ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "b7b5", "c4b5", "a7a6", "b5a6", "c8a6"],
             ["d2d4", "g8f6", "c2c4", "c7c5", "d4d5", "b7b5", "c4b5", "a7a6", "b5a6", "d7d6"]
         ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...d6"
+        ],
         "description": "Жертва пешки b5."
     },
     "Защита Филидора": {
@@ -207,6 +295,10 @@ OPENINGS = {
             ["e2e4", "e7e5", "g1f3", "d7d6", "d2d4", "e5d4", "f3d4", "g8f6", "b1c3", "f8e7"],
             ["e2e4", "e7e5", "g1f3", "d7d6", "d2d4", "e5d4", "f3d4", "g8f6", "b1c3", "c8d7"]
         ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...Bd7"
+        ],
         "description": "Укрепление центра."
     },
     "Защита Петрова": {
@@ -214,6 +306,10 @@ OPENINGS = {
         "variations": [
             ["e2e4", "e7e5", "g1f3", "g8f6", "d2d4", "e5d4", "e4e5", "f6e4", "f3d4", "d7d5"],
             ["e2e4", "e7e5", "g1f3", "g8f6", "d2d4", "e5d4", "e4e5", "f6e4", "f3d4", "f8c5"]
+        ],
+        "variation_names": [
+            "Главная линия",
+            "Вариант с ...Bc5"
         ],
         "description": "Русская партия."
     }
@@ -236,7 +332,6 @@ def uci_to_san(moves_uci, start_fen=None):
     return " ".join(san_moves)
 
 def generate_gif_from_moves(moves_uci, duration):
-    """Генерирует GIF по списку UCI-ходов с заданной длительностью кадра."""
     board = chess.Board()
     frames = [chess.svg.board(board, size=400)]
     for uci in moves_uci:
@@ -265,6 +360,13 @@ def generate_gif_from_moves(moves_uci, duration):
 def format_variation(moves_uci):
     return uci_to_san(moves_uci)
 
+def get_variation_name(opening, idx):
+    """Возвращает название вариации по индексу (1-based) или 'Ответвление N'"""
+    names = opening.get("variation_names", [])
+    if names and idx <= len(names):
+        return names[idx-1]
+    return f"Ответвление {idx}"
+
 # ----------------------------------------------------------------------
 # МЕНЮ
 # ----------------------------------------------------------------------
@@ -283,7 +385,6 @@ def get_back_button():
     return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="menu_main")]])
 
 def get_speed_menu():
-    # Скорость от 0.1 до 2.0 секунд
     keyboard = [
         [InlineKeyboardButton("⚡ 0.1 сек", callback_data="speed_0.1"),
          InlineKeyboardButton("⚡ 0.2 сек", callback_data="speed_0.2"),
@@ -307,14 +408,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"♟️ **Шахматный справочник**\n\n"
         f"Текущая скорость GIF: **{context.user_data['gif_duration']} сек/кадр**\n"
-        f"Выбери дебют – получишь гифки (основная линия + ответвления, если есть).\n"
+        f"Выбери дебют – получишь гифки (основная линия + варианты).\n"
         f"Скорость можно изменить в меню или командой `/speed <секунды>` (0.1–2.0).",
         reply_markup=get_main_menu(),
         parse_mode='Markdown'
     )
 
 async def speed_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Установка скорости через команду /speed <секунды>."""
     if not context.args:
         await update.message.reply_text("Пример: `/speed 0.5` (от 0.1 до 2.0)", parse_mode='Markdown')
         return
@@ -387,6 +487,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             duration = context.user_data.get('gif_duration', DEFAULT_GIF_DURATION)
             await query.edit_message_text(f"🎬 Генерирую гифки для «{opening_name}»... (скорость {duration} сек/кадр)")
+
+            # Основная линия
             main_gif = generate_gif_from_moves(opening["main"], duration)
             main_san = format_variation(opening["main"])
             if main_gif:
@@ -395,16 +497,20 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     caption=f"🎬 {opening_name} – Основная линия\n`{main_san}`",
                     parse_mode='Markdown'
                 )
+
+            # Варианты (если есть)
             if opening.get("variations"):
                 for idx, var_moves in enumerate(opening["variations"], 1):
                     var_gif = generate_gif_from_moves(var_moves, duration)
                     var_san = format_variation(var_moves)
+                    var_name = get_variation_name(opening, idx)
                     if var_gif:
                         await query.message.reply_animation(
                             animation=InputFile(io.BytesIO(var_gif), filename=f"var{idx}.gif"),
-                            caption=f"🔄 Ответвление {idx}\n`{var_san}`",
+                            caption=f"🔄 {var_name}\n`{var_san}`",
                             parse_mode='Markdown'
                         )
+
             await query.message.reply_text(
                 f"📖 {opening['description']}\n⏱️ Скорость: {duration} сек/кадр",
                 reply_markup=get_back_button()
@@ -469,10 +575,11 @@ async def opening_gif(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for idx, var_moves in enumerate(opening["variations"], 1):
                 var_gif = generate_gif_from_moves(var_moves, duration)
                 var_san = format_variation(var_moves)
+                var_name = get_variation_name(opening, idx)
                 if var_gif:
                     await update.message.reply_animation(
                         animation=InputFile(io.BytesIO(var_gif), filename=f"var{idx}.gif"),
-                        caption=f"🔄 Ответвление {idx}\n`{var_san}`",
+                        caption=f"🔄 {var_name}\n`{var_san}`",
                         parse_mode='Markdown'
                     )
         await update.message.reply_text(
@@ -593,7 +700,7 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_fen))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_pgn))
-    print("✅ Бот запущен (25 дебютов, скорость 0.1–2.0 сек).")
+    print("✅ Бот запущен (25 дебютов, названия вариантов).")
     app.run_polling()
 
 if __name__ == "__main__":
