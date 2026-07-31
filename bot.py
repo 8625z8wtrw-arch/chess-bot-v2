@@ -12,7 +12,7 @@ import cairosvg
 from config import TELEGRAM_TOKEN
 
 logging.basicConfig(level=logging.INFO)
-ENGINE_PATH = "/opt/homebrew/bin/stockfish"
+ENGINE_PATH = "./stockfish"
 GIF_DURATION = 2.5
 
 OPENINGS = {
