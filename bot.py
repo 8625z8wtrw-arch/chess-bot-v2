@@ -424,7 +424,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• Для загрузки PGN отправь файл с расширением `.pgn`.\n"
         "• Чтобы сделать ход, введи `/move e4` (или `/m e4`).\n\n"
         "🎬 **Скорость GIF** можно настроить в меню (кнопка «Настроить скорость»).\n\n"
-        "❓ Если что-то непонятно, пиши в чат, я помогу!"
+        
     )
     if update.callback_query:
         try:
