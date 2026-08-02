@@ -24,26 +24,27 @@ if not TELEGRAM_TOKEN:
 
 # --- Умный поиск Stockfish (исправлен) ---
 def find_stockfish():
-    # Сначала ищем в текущей папке (на случай, если бинарник там)
-    if os.path.exists("./stockfish"):
-        print("✅ Stockfish найден в ./stockfish")
-        return "./stockfish"
-    # Системные пути (Linux, Mac)
+    # Ищем рекурсивно в папке проекта
+    for root, dirs, files in os.walk("."):
+        for file in files:
+            if file.startswith("stockfish"):
+                path = os.path.join(root, file)
+                if os.access(path, os.X_OK):
+                    print(f"✅ Stockfish найден: {path}")
+                    return path
+    # Если не нашли, проверяем системные пути
     system_paths = [
-        "/usr/games/stockfish",    # на Render через apt-get
+        "/usr/games/stockfish",
         "/usr/bin/stockfish",
         "/usr/local/bin/stockfish",
-        "/opt/homebrew/bin/stockfish",  # на Mac
-        "/usr/local/games/stockfish",
+        "/opt/homebrew/bin/stockfish",
     ]
     for path in system_paths:
         if os.path.exists(path):
-            print(f"✅ Stockfish найден по пути: {path}")
             return path
-    print("❌ Stockfish не найден ни в одном из путей!")
     return None
 
-ENGINE_PATH = find_stockfish()
+ENGINE_PATH = "./stockfish"
 if not ENGINE_PATH:
     raise RuntimeError("Stockfish не найден! Поместите бинарник в папку проекта или установите через brew.")
 
