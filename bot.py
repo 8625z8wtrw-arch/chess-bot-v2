@@ -22,9 +22,15 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 if not TELEGRAM_TOKEN:
     raise ValueError("TELEGRAM_TOKEN не задан в переменных окружения")
 
-# --- Умный поиск Stockfish (исправлен) ---
+# Путь к Stockfish — жёстко прописываем, но если не работает, используем рекурсивный поиск
+ENGINE_PATH = "./stockfish/stockfish-ubuntu-x86-64-avx2"  # основной путь, его стараемся найти
+# Если по этому пути не найдётся, функция find_stockfish() попытается найти любой файл, начинающийся с stockfish
+
 def find_stockfish():
-    # Ищем рекурсивно в папке проекта
+    # Сначала проверяем жёсткий путь
+    if os.path.exists(ENGINE_PATH):
+        return ENGINE_PATH
+    # Если нет, ищем рекурсивно
     for root, dirs, files in os.walk("."):
         for file in files:
             if file.startswith("stockfish"):
@@ -32,7 +38,7 @@ def find_stockfish():
                 if os.access(path, os.X_OK):
                     print(f"✅ Stockfish найден: {path}")
                     return path
-    # Если не нашли, проверяем системные пути
+    # Проверяем системные пути
     system_paths = [
         "/usr/games/stockfish",
         "/usr/bin/stockfish",
@@ -41,19 +47,23 @@ def find_stockfish():
     ]
     for path in system_paths:
         if os.path.exists(path):
+            print(f"✅ Stockfish найден в системе: {path}")
             return path
     return None
 
-ENGINE_PATH = "./stockfish/stockfish-ubuntu-x86-64-avx2"
-if not ENGINE_PATH:
-    raise RuntimeError("Stockfish не найден! Поместите бинарник в папку проекта или установите через brew.")
+# Если найден, используем его, иначе ошибка
+found = find_stockfish()
+if found:
+    ENGINE_PATH = found
+else:
+    raise RuntimeError("Stockfish не найден! Убедитесь, что бинарник есть в папке проекта или установлен в системе.")
 
 DEFAULT_GIF_DURATION = 1.0
 
 logging.basicConfig(level=logging.INFO)
 
 # ----------------------------------------------------------------------
-# FLASK-СЕРВЕР ДЛЯ HEALTH-CHECK
+# FLASK-СЕРВЕР ДЛЯ HEALTH-CHECK (самопинг)
 # ----------------------------------------------------------------------
 flask_app = Flask(__name__)
 
@@ -71,11 +81,11 @@ def keep_alive():
             print("✅ Пинг успешен")
         except Exception as e:
             print(f"❌ Ошибка пинга: {e}")
-        time.sleep(600)
+        time.sleep(600)  # 10 минут
 
 def start_flask():
     port = int(os.getenv('PORT', 8080))
-    flask_app.run(host='0.0.0.0', port=port)
+    flask_app.run(host='0.0.0.0', port=port, threaded=True)
 
 def start_keep_alive():
     thread = threading.Thread(target=keep_alive, daemon=True)
@@ -395,14 +405,45 @@ async def analyze_position(fen: str) -> str:
         return f"❌ Ошибка: {e}"
 
 # ----------------------------------------------------------------------
+# КОМАНДА /help
+# ----------------------------------------------------------------------
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "📘 **Шахматный справочник – помощь**\n\n"
+        "🤖 **Что умеет этот бот?**\n"
+        "• Анализирует позицию по FEN (показывает топ-3 хода с оценкой).\n"
+        "• Показывает 25 дебютов с вариантами (основная линия + 2 ответвления).\n"
+        "• Генерирует GIF-анимацию любого дебюта.\n"
+        "• Подсказывает тактические идеи и даёт советы по позиции.\n"
+        "• Загружает и анализирует PGN-файлы партий.\n"
+        "• Позволяет делать ходы командой `/move <ход>`.\n\n"
+        "📌 **Как использовать:**\n"
+        "• Отправь мне **FEN-строку** позиции для анализа.\n"
+        "• Для дебютов используй кнопку **«Все дебюты»** в меню.\n"
+        "• Для GIF дебюта нажми **«GIF дебюта»** и выбери название.\n"
+        "• Для загрузки PGN отправь файл с расширением `.pgn`.\n"
+        "• Чтобы сделать ход, введи `/move e4` (или `/m e4`).\n\n"
+        "🎬 **Скорость GIF** можно настроить в меню (кнопка «Настроить скорость»).\n\n"
+        "❓ Если что-то непонятно, пиши в чат, я помогу!"
+    )
+    if update.callback_query:
+        try:
+            await update.callback_query.edit_message_text(text, parse_mode='Markdown', reply_markup=get_back_button())
+        except Exception:
+            await update.callback_query.message.reply_text(text, parse_mode='Markdown', reply_markup=get_back_button())
+    else:
+        await update.message.reply_text(text, parse_mode='Markdown', reply_markup=get_back_button())
+
+# ----------------------------------------------------------------------
 # МЕНЮ
 # ----------------------------------------------------------------------
 def get_main_menu():
     keyboard = [
         [InlineKeyboardButton("📊 Анализ FEN", callback_data="menu_fen")],
         [InlineKeyboardButton("📖 Все дебюты", callback_data="menu_openings")],
-        [InlineKeyboardButton("🎬 Настроить скорость", callback_data="menu_speed")],
+        [InlineKeyboardButton("🎬 GIF дебюта", callback_data="menu_gif")],
         [InlineKeyboardButton("📂 Загрузить PGN", callback_data="menu_pgn")],
+        [InlineKeyboardButton("🎬 Настроить скорость", callback_data="menu_speed")],
         [InlineKeyboardButton("🔄 Пример FEN", callback_data="menu_example_fen")],
         [InlineKeyboardButton("❓ Помощь", callback_data="menu_help")],
     ]
@@ -435,8 +476,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"♟️ **Шахматный справочник**\n\n"
         f"Текущая скорость GIF: **{context.user_data['gif_duration']} сек/кадр**\n"
-        f"Выбери дебют – получишь гифки (основная линия + варианты).\n"
-        f"Скорость можно изменить в меню или командой `/speed <секунды>` (0.1–2.0).",
+        f"Нажми «Помощь» для инструкций.\n"
+        f"Выбери действие:",
         reply_markup=get_main_menu(),
         parse_mode='Markdown'
     )
@@ -478,6 +519,12 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(
                 "📖 Выбери дебют:",
                 reply_markup=InlineKeyboardMarkup(buttons)
+            )
+        elif query.data == "menu_gif":
+            await query.edit_message_text(
+                "🎬 **GIF дебюта**\nВведи команду: `/opening_gif <название>`\n(можно часть названия)\n\n"
+                "Или выбери дебют из списка «Все дебюты» и получи гифку автоматически.",
+                reply_markup=get_back_button()
             )
         elif query.data == "menu_speed":
             await query.edit_message_text(
@@ -546,26 +593,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text("⚠️ Произошла ошибка, попробуй снова.", reply_markup=get_main_menu())
         except:
             pass
-
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        "📘 **Команды:**\n"
-        "/start – главное меню\n"
-        "/opening_gif <название> – GIF дебюта (можно часть названия)\n"
-        "/speed <секунды> – установить скорость (0.1..2.0)\n"
-        "/move <ход> – сделать ход (например, /move e4)\n"
-        "/help – эта справка\n\n"
-        "• Отправь FEN-строку для анализа позиции.\n"
-        "• Загрузи PGN-файл для анализа партии.\n"
-        "• Используй кнопки меню для быстрого доступа."
-    )
-    if update.callback_query:
-        try:
-            await update.callback_query.edit_message_text(text, parse_mode='Markdown', reply_markup=get_back_button())
-        except:
-            await update.callback_query.message.reply_text(text, parse_mode='Markdown', reply_markup=get_back_button())
-    else:
-        await update.message.reply_text(text, parse_mode='Markdown', reply_markup=get_back_button())
 
 async def opening_gif(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = " ".join(context.args) if context.args else None
@@ -713,7 +740,7 @@ def main():
     flask_thread.start()
     start_keep_alive()
 
-    print("✅ Бот запущен (с самопингом, Flask, оценкой и 25 дебютами).")
+    print("✅ Бот запущен (с самопингом, Flask, оценкой, 25 дебютами и /help).")
     app.run_polling()
 
 if __name__ == "__main__":
