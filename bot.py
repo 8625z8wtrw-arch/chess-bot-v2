@@ -22,48 +22,21 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 if not TELEGRAM_TOKEN:
     raise ValueError("TELEGRAM_TOKEN не задан в переменных окружения")
 
-# Путь к Stockfish — жёстко прописываем, но если не работает, используем рекурсивный поиск
-ENGINE_PATH = "./stockfish/stockfish-ubuntu-x86-64-avx2"  # основной путь, его стараемся найти
-# Если по этому пути не найдётся, функция find_stockfish() попытается найти любой файл, начинающийся с stockfish
-
-def find_stockfish():
-    # Сначала проверяем жёсткий путь
-    if os.path.exists(ENGINE_PATH):
-        return ENGINE_PATH
-    # Если нет, ищем рекурсивно
-    for root, dirs, files in os.walk("."):
-        for file in files:
-            if file.startswith("stockfish"):
-                path = os.path.join(root, file)
-                if os.access(path, os.X_OK):
-                    print(f"✅ Stockfish найден: {path}")
-                    return path
-    # Проверяем системные пути
-    system_paths = [
-        "/usr/games/stockfish",
-        "/usr/bin/stockfish",
-        "/usr/local/bin/stockfish",
-        "/opt/homebrew/bin/stockfish",
-    ]
-    for path in system_paths:
-        if os.path.exists(path):
-            print(f"✅ Stockfish найден в системе: {path}")
-            return path
-    return None
-
-# Если найден, используем его, иначе ошибка
-found = find_stockfish()
-if found:
-    ENGINE_PATH = found
-else:
-    raise RuntimeError("Stockfish не найден! Убедитесь, что бинарник есть в папке проекта или установлен в системе.")
+# Жёсткий путь к Stockfish на Render (после распаковки архива)
+ENGINE_PATH = "./stockfish/stockfish-ubuntu-x86-64-avx2"
+if not os.path.exists(ENGINE_PATH):
+    # fallback: если вдруг файл в корне
+    if os.path.exists("./stockfish"):
+        ENGINE_PATH = "./stockfish"
+    else:
+        print("❌ Stockfish не найден по пути:", ENGINE_PATH)
 
 DEFAULT_GIF_DURATION = 1.0
 
 logging.basicConfig(level=logging.INFO)
 
 # ----------------------------------------------------------------------
-# FLASK-СЕРВЕР ДЛЯ HEALTH-CHECK (самопинг)
+# FLASK-СЕРВЕР ДЛЯ HEALTH-CHECK
 # ----------------------------------------------------------------------
 flask_app = Flask(__name__)
 
@@ -81,11 +54,11 @@ def keep_alive():
             print("✅ Пинг успешен")
         except Exception as e:
             print(f"❌ Ошибка пинга: {e}")
-        time.sleep(600)  # 10 минут
+        time.sleep(600)
 
 def start_flask():
     port = int(os.getenv('PORT', 8080))
-    flask_app.run(host='0.0.0.0', port=port, threaded=True)
+    flask_app.run(host='0.0.0.0', port=port)
 
 def start_keep_alive():
     thread = threading.Thread(target=keep_alive, daemon=True)
@@ -380,7 +353,7 @@ def format_score(score):
         return f"{cp / 100:+.2f} пешки"
 
 # ----------------------------------------------------------------------
-# АНАЛИЗ ПОЗИЦИИ (с оценкой)
+# АНАЛИЗ ПОЗИЦИИ
 # ----------------------------------------------------------------------
 async def analyze_position(fen: str) -> str:
     try:
@@ -405,45 +378,14 @@ async def analyze_position(fen: str) -> str:
         return f"❌ Ошибка: {e}"
 
 # ----------------------------------------------------------------------
-# КОМАНДА /help
-# ----------------------------------------------------------------------
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        "📘 **Шахматный справочник – помощь**\n\n"
-        "🤖 **Что умеет этот бот?**\n"
-        "• Анализирует позицию по FEN (показывает топ-3 хода с оценкой).\n"
-        "• Показывает 25 дебютов с вариантами (основная линия + 2 ответвления).\n"
-        "• Генерирует GIF-анимацию любого дебюта.\n"
-        "• Подсказывает тактические идеи и даёт советы по позиции.\n"
-        "• Загружает и анализирует PGN-файлы партий.\n"
-        "• Позволяет делать ходы командой `/move <ход>`.\n\n"
-        "📌 **Как использовать:**\n"
-        "• Отправь мне **FEN-строку** позиции для анализа.\n"
-        "• Для дебютов используй кнопку **«Все дебюты»** в меню.\n"
-        "• Для GIF дебюта нажми **«GIF дебюта»** и выбери название.\n"
-        "• Для загрузки PGN отправь файл с расширением `.pgn`.\n"
-        "• Чтобы сделать ход, введи `/move e4` (или `/m e4`).\n\n"
-        "🎬 **Скорость GIF** можно настроить в меню (кнопка «Настроить скорость»).\n\n"
-        
-    )
-    if update.callback_query:
-        try:
-            await update.callback_query.edit_message_text(text, parse_mode='Markdown', reply_markup=get_back_button())
-        except Exception:
-            await update.callback_query.message.reply_text(text, parse_mode='Markdown', reply_markup=get_back_button())
-    else:
-        await update.message.reply_text(text, parse_mode='Markdown', reply_markup=get_back_button())
-
-# ----------------------------------------------------------------------
 # МЕНЮ
 # ----------------------------------------------------------------------
 def get_main_menu():
     keyboard = [
         [InlineKeyboardButton("📊 Анализ FEN", callback_data="menu_fen")],
         [InlineKeyboardButton("📖 Все дебюты", callback_data="menu_openings")],
-        [InlineKeyboardButton("🎬 GIF дебюта", callback_data="menu_gif")],
-        [InlineKeyboardButton("📂 Загрузить PGN", callback_data="menu_pgn")],
         [InlineKeyboardButton("🎬 Настроить скорость", callback_data="menu_speed")],
+        [InlineKeyboardButton("📂 Загрузить PGN", callback_data="menu_pgn")],
         [InlineKeyboardButton("🔄 Пример FEN", callback_data="menu_example_fen")],
         [InlineKeyboardButton("❓ Помощь", callback_data="menu_help")],
     ]
@@ -476,11 +418,38 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"♟️ **Шахматный справочник**\n\n"
         f"Текущая скорость GIF: **{context.user_data['gif_duration']} сек/кадр**\n"
-        f"Нажми «Помощь» для инструкций.\n"
-        f"Выбери действие:",
+        f"Выбери дебют – получишь гифки (основная линия + варианты).\n"
+        f"Скорость можно изменить в меню или командой `/speed <секунды>` (0.1–2.0).",
         reply_markup=get_main_menu(),
         parse_mode='Markdown'
     )
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "📘 **Шахматный справочник – помощь**\n\n"
+        "♟️ **Основные возможности:**\n"
+        "• **Анализ позиции** – отправь FEN-строку, и я покажу 3 лучших хода с оценкой и линиями.\n"
+        "• **Дебюты** – в меню выбери «Все дебюты», затем любой дебют – получишь GIF-анимацию основной линии и её вариантов.\n"
+        "• **Скорость GIF** – настрой время показа каждого хода (от 0.1 до 2.0 сек) через меню или команду `/speed`.\n"
+        "• **Загрузка PGN** – отправь файл `.pgn`, я определю дебют, покажу количество **полных ходов** (каждый ход = ход белых + ход чёрных) и проанализирую последнюю позицию.\n"
+        "• **Советы и тактика** – анализ позиции включает оценку (в пешках или мат) и советы по рокировке, развитию фигур и контролю центра.\n\n"
+        "📌 **Команды:**\n"
+        "/start – главное меню\n"
+        "/help – эта справка\n"
+        "/speed <секунды> – установить скорость GIF (0.1–2.0)\n"
+        "/opening_gif <название> – показать GIF дебюта (можно часть названия)\n"
+        "/move <ход> – сделать ход в текущей позиции (например, /move e4)\n"
+        "Отправь FEN-строку – автоматический анализ.\n\n"
+        "📎 **Пример FEN:** `rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1`\n\n"
+        "❓ Если что-то непонятно – просто нажми кнопку «Пример FEN» в меню."
+    )
+    if update.callback_query:
+        try:
+            await update.callback_query.edit_message_text(text, parse_mode='Markdown', reply_markup=get_back_button())
+        except:
+            await update.callback_query.message.reply_text(text, parse_mode='Markdown', reply_markup=get_back_button())
+    else:
+        await update.message.reply_text(text, parse_mode='Markdown', reply_markup=get_back_button())
 
 async def speed_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
@@ -520,12 +489,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "📖 Выбери дебют:",
                 reply_markup=InlineKeyboardMarkup(buttons)
             )
-        elif query.data == "menu_gif":
-            await query.edit_message_text(
-                "🎬 **GIF дебюта**\nВведи команду: `/opening_gif <название>`\n(можно часть названия)\n\n"
-                "Или выбери дебют из списка «Все дебюты» и получи гифку автоматически.",
-                reply_markup=get_back_button()
-            )
         elif query.data == "menu_speed":
             await query.edit_message_text(
                 "🎬 **Выбери скорость GIF:** (секунд на кадр)\nМожно также использовать `/speed <число>`",
@@ -541,7 +504,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         elif query.data == "menu_pgn":
             await query.edit_message_text(
-                "📂 **Загрузка PGN**\nОтправь мне файл с расширением `.pgn`.",
+                "📂 **Загрузка PGN**\nОтправь мне файл с расширением `.pgn`.\nЯ покажу количество **полных ходов** (каждый ход = ход белых + чёрных) и проанализирую последнюю позицию.",
                 reply_markup=get_back_button()
             )
         elif query.data == "menu_example_fen":
@@ -707,11 +670,15 @@ async def handle_pgn(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if data["main"][0] == first_move:
                 opening_name = name
                 break
-        await update.message.reply_text(
-            f"📂 **PGN загружен**\n♟️ Дебют: {opening_name}\n📊 Всего ходов: {len(moves)}",
-            parse_mode='Markdown',
-            reply_markup=get_back_button()
-        )
+        # Вычисляем количество полных ходов (пара: белые + чёрные)
+        full_moves = len(moves) // 2
+        # Если ходов нечётное, то последний ход сделали белые, и чёрные ещё не ответили
+        last_move_by = "белые" if len(moves) % 2 == 1 else "чёрные" if len(moves) > 0 else None
+        status_text = f"📂 **PGN загружен**\n♟️ Дебют: {opening_name}\n📊 Полных ходов: {full_moves}"
+        if last_move_by:
+            status_text += f" (последний ход: {last_move_by})"
+        await update.message.reply_text(status_text, parse_mode='Markdown', reply_markup=get_back_button())
+        # Анализируем последнюю позицию
         board = game.board()
         for move in moves:
             board.push(move)
@@ -740,7 +707,7 @@ def main():
     flask_thread.start()
     start_keep_alive()
 
-    print("✅ Бот запущен (с самопингом, Flask, оценкой, 25 дебютами и /help).")
+    print("✅ Бот запущен (с самопингом, Flask, оценкой и 25 дебютами).")
     app.run_polling()
 
 if __name__ == "__main__":
