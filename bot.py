@@ -22,13 +22,37 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 if not TELEGRAM_TOKEN:
     raise ValueError("TELEGRAM_TOKEN не задан в переменных окружения")
 
-ENGINE_PATH = "./stockfish"
+# --- Умный поиск Stockfish (исправлен) ---
+def find_stockfish():
+    # Сначала ищем в текущей папке (на случай, если бинарник там)
+    if os.path.exists("./stockfish"):
+        print("✅ Stockfish найден в ./stockfish")
+        return "./stockfish"
+    # Системные пути (Linux, Mac)
+    system_paths = [
+        "/usr/games/stockfish",    # на Render через apt-get
+        "/usr/bin/stockfish",
+        "/usr/local/bin/stockfish",
+        "/opt/homebrew/bin/stockfish",  # на Mac
+        "/usr/local/games/stockfish",
+    ]
+    for path in system_paths:
+        if os.path.exists(path):
+            print(f"✅ Stockfish найден по пути: {path}")
+            return path
+    print("❌ Stockfish не найден ни в одном из путей!")
+    return None
+
+ENGINE_PATH = find_stockfish()
+if not ENGINE_PATH:
+    raise RuntimeError("Stockfish не найден! Поместите бинарник в папку проекта или установите через brew.")
+
 DEFAULT_GIF_DURATION = 1.0
 
 logging.basicConfig(level=logging.INFO)
 
 # ----------------------------------------------------------------------
-# FLASK-СЕРВЕР ДЛЯ HEALTH-CHECK (чтобы Render не засыпал)
+# FLASK-СЕРВЕР ДЛЯ HEALTH-CHECK
 # ----------------------------------------------------------------------
 flask_app = Flask(__name__)
 
@@ -37,10 +61,8 @@ def health_check():
     return "✅ Bot is running!", 200
 
 def keep_alive():
-    """Каждые 10 минут отправляет GET-запрос на свой URL, чтобы Render не усыпил бота."""
     url = os.getenv('RENDER_EXTERNAL_URL')
     if not url:
-        # Если переменной нет (локальный запуск), не пингуем
         return
     while True:
         try:
@@ -48,7 +70,7 @@ def keep_alive():
             print("✅ Пинг успешен")
         except Exception as e:
             print(f"❌ Ошибка пинга: {e}")
-        time.sleep(600)  # 10 минут
+        time.sleep(600)
 
 def start_flask():
     port = int(os.getenv('PORT', 8080))
@@ -59,7 +81,7 @@ def start_keep_alive():
     thread.start()
 
 # ----------------------------------------------------------------------
-# ДЕБЮТНАЯ БАЗА (25 дебютов с названиями вариантов)
+# ВСЕ 25 ДЕБЮТОВ (ПОЛНАЯ БАЗА)
 # ----------------------------------------------------------------------
 OPENINGS = {
     "Испанская партия": {
@@ -331,6 +353,46 @@ def get_variation_name(opening, idx):
         return names[idx-1]
     return f"Ответвление {idx}"
 
+def format_score(score):
+    if score is None:
+        return "Оценка не определена"
+    if score.is_mate():
+        mate_in = score.mate()
+        if mate_in > 0:
+            return f"Мат в {mate_in} ходов за белых"
+        else:
+            return f"Мат в {-mate_in} ходов за чёрных"
+    else:
+        cp = score.relative.score()
+        if cp is None:
+            return "Оценка не определена"
+        return f"{cp / 100:+.2f} пешки"
+
+# ----------------------------------------------------------------------
+# АНАЛИЗ ПОЗИЦИИ (с оценкой)
+# ----------------------------------------------------------------------
+async def analyze_position(fen: str) -> str:
+    try:
+        board = chess.Board(fen)
+        with chess.engine.SimpleEngine.popen_uci(ENGINE_PATH) as engine:
+            analysis = engine.analyse(board, chess.engine.Limit(time=2.0), multipv=3)
+            if not analysis:
+                return "❌ Не удалось найти ходы."
+            result_text = "📊 **Топ-3 рекомендуемых хода:**\n"
+            for i, info in enumerate(analysis, 1):
+                best_move = info.get("pv")[0] if info.get("pv") else None
+                best_move_san = board.san(best_move) if best_move else "не найден"
+                pv = info.get("pv", [])
+                line_moves = [board.san(m) for m in pv[:3]]
+                line_str = " ".join(line_moves) if line_moves else "нет продолжения"
+                score = info.get("score")
+                score_str = format_score(score)
+                result_text += f"{i}. **{best_move_san}** (оценка: {score_str})\n   Линия: {line_str}\n"
+            return result_text
+    except Exception as e:
+        logging.error(f"Ошибка анализа: {e}")
+        return f"❌ Ошибка: {e}"
+
 # ----------------------------------------------------------------------
 # МЕНЮ
 # ----------------------------------------------------------------------
@@ -591,26 +653,6 @@ async def handle_fen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = await analyze_position(fen_text)
     await update.message.reply_text(result, parse_mode='Markdown', reply_markup=get_back_button())
 
-async def analyze_position(fen: str) -> str:
-    try:
-        board = chess.Board(fen)
-        with chess.engine.SimpleEngine.popen_uci(ENGINE_PATH) as engine:
-            analysis = engine.analyse(board, chess.engine.Limit(time=2.0), multipv=3)
-            if not analysis:
-                return "❌ Не удалось найти ходы."
-            result_text = "📊 **Топ-3 рекомендуемых хода:**\n"
-            for i, info in enumerate(analysis, 1):
-                best_move = info.get("pv")[0] if info.get("pv") else None
-                best_move_san = board.san(best_move) if best_move else "не найден"
-                pv = info.get("pv", [])
-                line_moves = [board.san(m) for m in pv[:3]]
-                line_str = " ".join(line_moves) if line_moves else "нет продолжения"
-                result_text += f"{i}. **{best_move_san}**\n   Линия: {line_str}\n"
-            return result_text
-    except Exception as e:
-        logging.error(f"Ошибка анализа: {e}")
-        return f"❌ Ошибка: {e}"
-
 async def handle_pgn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     doc = update.message.document
     if not doc.file_name.endswith(('.pgn', '.PGN')):
@@ -666,14 +708,11 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_fen))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_pgn))
 
-    # Запускаем Flask-сервер в фоновом потоке (для health-check)
     flask_thread = threading.Thread(target=start_flask, daemon=True)
     flask_thread.start()
-
-    # Запускаем самопинг (чтобы Render не усыпил бота)
     start_keep_alive()
 
-    print("✅ Бот запущен (с самопингом и Flask).")
+    print("✅ Бот запущен (с самопингом, Flask, оценкой и 25 дебютами).")
     app.run_polling()
 
 if __name__ == "__main__":
