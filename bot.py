@@ -44,7 +44,7 @@ def find_stockfish():
             return path
     return None
 
-ENGINE_PATH = "./stockfish"
+ENGINE_PATH = "./stockfish/stockfish-ubuntu-x86-64-avx2"
 if not ENGINE_PATH:
     raise RuntimeError("Stockfish не найден! Поместите бинарник в папку проекта или установите через brew.")
 
