@@ -1,3 +1,8 @@
+python-telegram-bot
+python-chess
+Pillow==10.4.0
+imageio==2.35.0
+requests==2.31.0
 annotated-types==0.8.0
 anyio==4.14.2
 blinker==1.9.0
